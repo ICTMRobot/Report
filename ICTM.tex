@@ -1,0 +1,253 @@
+\documentclass[a4paper,11pt,oneside,onecolumn]{article}
+
+\usepackage{a4wide}	%Blad wordt breeder benut
+\usepackage{graphicx} %Afbeeldingen kunnen invoeren en opmaken
+\usepackage{amsmath} %Geavanceerde wiskunde gebruiken
+\usepackage[hang,small,bf]{caption} %Mooie bijschriften voor tabellen en figuren
+\usepackage{url} %Mooie opmaak voor url
+\usepackage[latin1]{inputenc} %Kan rechtstreeks met accenten enzo werken
+\usepackage[Gray,squaren,thinqspace,thinspace]{SIunits} %Om grootheden en eenheden mooi te noteren
+\usepackage{amssymb} %Wiskundige lettertypes
+\usepackage{float} %Figuren mooi plaatsen
+\usepackage[version=3]{mhchem} %Chemische formules
+\usepackage{subfigure} %Figuren naast elkaar in zelfde omgeving
+
+%\setlength{\parindent}{0pt} %Niet inspringen van nieuwe paragrafen
+%\newcommand{\npar}{\par \vspace{2.3ex plus 0.3ex minus 0.3ex}} %Commando om nieuwe paragrafen te beginnen met witregel
+\renewcommand{\vec}[1]{\mathbf{#1}} %Het \vec commando zet geen pijltje meer boven maar drukt vet
+
+\begin{document}
+\begin{titlepage}
+		\begin{center}
+			
+			\vspace{5cm}			
+			\begin{figure}[H]
+				\begin{center}
+					\includegraphics[width=4.5cm]{logo_ugent}
+					\hspace{5cm}
+					\includegraphics[width=3.75cm]{FEA_logo}
+				\end{center}
+			\end{figure}
+			
+			\vspace{2cm}
+			\Large{Master of Electromechanical Engineering\\[2mm]Academic year 2014-2015}
+
+			\vspace{3cm}
+			\huge{\textsc{ICT \& Mechatronics\\ 
+			Group D2 : Robot Arm}}
+
+	
+			
+			\vspace{2cm}
+			\large{Emanuel De Peuter\\ Quinten Martens\\ Frederik Ostyn\\ Wouter Staessens\\ Thibault Stepman\\ Dries T'Jampens}
+
+			\end{center}	
+
+			\vspace{2cm}
+
+			\begin{large} \begin{tabbing}
+			Supervisors: \= Dr. Ir. F. De Belie \\
+			\> Prof. Dr. Ir. R. De Keyser \\
+			\> Dr. Ir. C. Copot \\
+			\> Dr. Ir. B. Van de Wiele
+			\end{tabbing} \end{large}
+
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\tableofcontents
+
+
+\newpage
+\setcounter{page}{0}
+\pagenumbering{arabic}
+
+\section{Introduction}
+\section{Task Description}
+
+\section{Robot Kinematics}
+In this part, the kinematics of a robot arm will be discussed. First, the Denavit-Hartenberg description will briefly be reviewed. Secondly, the calibration of the robot with the use of a MATLAB script will be presented. Thirdly, the range of the robot will be calculated.
+
+\subsection{Mathematical framework}
+A position and rotation of a link of the robot (or equivalently, the local robot coordinate system) as seen from a fixed global coordinate sytem can be represented by matrix $g$
+\begin{equation}
+g = \left(
+\begin{matrix}
+q & p \\
+0 & 1
+\end{matrix}
+\right)
+\end{equation}
+where $p$ and $q$ represent respectively the coordinates of the origin of the robot coordinate system in the global system and the rotation matrix from global to robot frame.
+
+If the robot has multiple links (which is the case here), the matrix $g_{end}$ representing the position and the orientation of the end effector can be build by multiplication of matrices
+\begin{equation}
+g_{end}=h_1h_2h_3h_4h_5
+\label{directKin}
+\end{equation}
+where $h_i$ describes the position and rotation of link $i$ as seen from the coordinate system of link $i-1$ with $i=0$ the global (external) coordinate system, $i=1$ the base, $i=2$ the shoulder, $i=3$ the elbow, $i=4$ the wrist and $i=5$ the tip of the gripper (or pencil if applicable\footnote{In the Arduino program $h_5=h_{5b}h_{pen}$ with $h_5$ the matrix describing the gripper tip in the frame of the wrist and $h_{pen}$ the pencil tip in the frame of the gripper tip.}). The matrices $h_i$ were already given in the Arduino template and will therefore not be repeated here.
+
+The above operation described in Eq. (\ref{directKin}) deals with the direct kinematics of the robot arm where the rotation of the servos is known and the matrix $g_{end}$ looked for. The inverse kinematics problem involves finding the correct servo angles if a coordinate and orientation of the end effector in the global system is given. This problem is far more difficult and only an approximate solution based on the Denavit-Hartenberg approach will be presented.
+
+The inverse kinematics problem comes down to solving
+\begin{equation}
+b=Mx
+\end{equation}
+for $x$, namely $x=M^{-1}b$. Here, $x$ and $b$ are the components of the velocity matrix $\mu$, defined as
+\begin{equation}
+\mu = \left(
+\begin{matrix}
+0 & -\omega_z & \omega_y & v_x \\
+\omega_z & 0 & -\omega_x & v_y \\
+-\omega_y & \omega_x & 0 & v_z \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right)
+\end{equation}
+in different bases
+\begin{equation}
+\mu=\sum_{i=1}^5 b_i B_i=\sum_{i=1}^5 x_i X_i
+\end{equation}
+where $\omega_x$, $\omega_y$, $\omega_z$, $v_x$, $v_y$ and $v_z$ are the angular velocity and the velocity of the end effector arm in its own reference coordinate system\footnote{Remark that $\omega_z\equiv 0$ for this robot as it can turn its wrist up and down and clockwise/anticlockwise, but not in the $z-$direction.}. This matrix $\mu$ was calculated based on the property that $dg_{end}(t)/dt=g(t)\cdot \mu(t)$
+
+In the above mathematical construction, $M$ is the transformation matrix between the bases $X$ and $B$, respectively associated with coordinates $x$ and $b$. The columns of $M$ contain the components of the base vectors $X_i$ as expressed in the base $B$. The base vectors $B_i$ are 
+$$
+B_1 = \left(
+\begin{matrix}
+0 & 0 & 0 & 0 \\
+0 & 0 & -1 & 0 \\
+0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+%
+B_2 = \left(
+\begin{matrix}
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 \\
+-1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+$$
+$$
+B_3 = \left(
+\begin{matrix}
+0 & 0 & 0 & 1 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+B_4 = \left(
+\begin{matrix}
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+%
+B_5 = \left(
+\begin{matrix}
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 1 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right)
+$$
+and the base vectors $X_i$ are
+$$
+X_1 = g_{end}^{-1}h_1s_1h_2h_3h_4h_{5b}h_{pen}
+$$
+$$
+X_2 = g_{end}^{-1}h_1h_2s_2h_3h_4h_{5b}h_{pen}
+$$
+$$
+X_3 = g_{end}^{-1}h_1s_1h_2h_3s_3h_4h_{5b}h_{pen}
+$$
+$$
+X_4 = g_{end}^{-1}h_1s_1h_2h_3h_4s_4h_{5b}h_{pen}
+$$
+$$
+X_5 = g_{end}^{-1}h_1s_1h_2h_3h_4h_{5b}s_5h_{pen}
+$$
+with
+$$
+s_1 = \left(
+\begin{matrix}
+0 & 1 & 0 & 0 \\
+-1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+%
+s_2 = -s_3 = s_4\left(
+\begin{matrix}
+0 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 \\
+0 & -1 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right),
+%
+s_5 = \left(
+\begin{matrix}
+0 & 0 & -1 & 0 \\
+0 & 0 & 0 & 0 \\
+1 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{matrix}
+\right)
+$$
+As both bases are now defined, the coordinate transformation matrix $M$ can be calculated.
+
+The only thing left to do is to find the components $b_i$ of $\mu$ in the base $B_i$. Recalling that 
+\begin{equation}
+dg_{end}(t)/dt=g(t)\cdot \mu(t)
+\end{equation}
+and assuming that in a certain step $dt$ the end effector should go from $g_{end}$ to $g_{des}$ with $g_{des}$ the desired state, the general solution in the case of $\mu$ being constant during the step can be found as being
+\begin{equation}
+g_{des} \equiv g(t+dt)=g(t)e^{\mu dt} \equiv g_{end}e^{\mu dt}
+\label{dsE}
+\end{equation}
+where $e^{\mu dt}$ is a matrix exponential. As we know the base $B_i$, we know the components $b_i$ of $\mu$ if we know $\mu$. Eq. (\ref{dsE}) however is not trivial to solve. Therefore $e^{\mu dt}$ is approximated by restricting the number of terms in the Taylor expansion
+\begin{equation}
+e^{\mu dt} \approx e+\mu dt
+\end{equation}
+with $e$ the unit matrix. The solution for $\mu dt$ is\footnote{$\mu dt$ is called $dsE$ in the Arduino code.} then
+\begin{equation}
+dsE := \mu dt \approx g_{end}^{-1}g_{des}-e 
+\end{equation}
+From this result, the $b_i dt$ components can be calculated, which completes the mathematical frame work to find $du_i$ as
+\begin{equation}
+x dt= M^{-1} b dt \Leftrightarrow  du_i = \sum_j M^{-1}_{ij}b_j dt
+\end{equation}
+
+\subsection{Calibration of the robot}
+
+In order to have a tool to calibrate the robot and to simulate how the presented mathematical framework describes the robot, a MATLAB script containing the direct and inverse algorithms was written. The direct kinematics part calculates and plots $g_{end}$ and the appropriate coordinate systems. The inverse kinematics part asks for a state $g_{des}$ and returns the servo angles that do the job.
+\begin{figure}[h]
+	\centering
+		\includegraphics[width=\textwidth]{robotMatlab}
+	\caption{Matlab simulation of the robot arm and the global and end effector coordinate system. This simulation was without the pencil; the end effector is the tip of the gripper.}
+	\label{fig:robotMatlab}
+\end{figure} 
+
+\subsection{Range of the robot arm}
+
+Dat met die cilinders... Wouter?
+\section{Algorithm to go from point A to B}
+
+\section{Sensor system design}
+
+\section{Algorithm in order to avoid obstacles}
+
+\section{Testing of the combined system}
+
+\section{Conclusion}
+
+\end{document}
